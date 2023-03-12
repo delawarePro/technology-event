@@ -26,15 +26,6 @@
     <Sessions Collection="NextSessions" Date="GetReferenceDateTime()"></Sessions>
 }
 
-@if (!CurrentSessions.Any() && !NextSessions.Any())
-{
-    <div class="row py-5 text-center">
-        <div class="coll">
-            <h2>Join us 23 March at 15:00</h2>
-        </div>
-    </div>
-}
-
 @code {
     public ConferenceData ConferenceData { get; set; }
     public IEnumerable<Summary> NextSessions { get; set; } = Enumerable.Empty<Summary>();
@@ -81,5 +72,12 @@
             .Where(s => s.StartsAt <= time && s.EndsAt > time)
             .Select(s => Summary.FromSession(s, ConferenceData))
             .OrderBy(s => s.RoomSort);
+
+        if (!CurrentSessions.Any() && !NextSessions.Any())
+        {
+            NextSessions = new[] { Summary.FromSession(
+                ConferenceData.Sessions.OrderBy(s => s.StartsAt).First(),
+                ConferenceData)};
+        }
     }
 }
