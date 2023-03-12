@@ -1,0 +1,85 @@
+﻿@page "/next"
+@inject Edition2023Service Service
+@inject NavigationManager NavManager
+
+
+<PageTitle>dTE 2023 - Up next</PageTitle>
+
+@if (CurrentSessions.Any())
+{
+    <div class="row py-3">
+        <div class="col text-bg-light">
+            <h2>Now</h2>
+        </div>
+    </div>
+    <Sessions Collection="CurrentSessions" Date="GetReferenceDateTime()"></Sessions>
+}
+
+@if (NextSessions.Any())
+{
+    <div class="row py-5">
+        <div class="coll">
+            <h2>Next</h2>
+        </div>
+    </div>
+
+    <Sessions Collection="NextSessions" Date="GetReferenceDateTime()"></Sessions>
+}
+
+@if (!CurrentSessions.Any() && !NextSessions.Any())
+{
+    <div class="row py-5 text-center">
+        <div class="coll">
+            <h2>Join us 23 March at 15:00</h2>
+        </div>
+    </div>
+}
+
+@code {
+    public ConferenceData ConferenceData { get; set; }
+    public IEnumerable<Summary> NextSessions { get; set; } = Enumerable.Empty<Summary>();
+    public IEnumerable<Summary> CurrentSessions { get; set; } = Enumerable.Empty<Summary>();
+
+    private Timer _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ConferenceData = await Service.GetConferenceDataAsync();
+
+        _timer = new System.Threading.Timer(async _ =>  // async void
+        {
+            DetermineSessions();
+            await InvokeAsync(StateHasChanged);
+        }, null, 0, 10000);
+    }
+
+    public DateTime GetReferenceDateTime()
+    {
+        var time = NavManager.QueryString("time");
+
+        if (time == null)
+        {
+            return DateTime.Now;
+        }
+
+        var eventDate = new DateTime(2023, 3, 23);
+        var timeOfDay = TimeSpan.Parse(time);
+
+        return eventDate.Add(timeOfDay);
+    }
+
+    public void DetermineSessions()
+    {
+        var time = GetReferenceDateTime();
+
+        NextSessions = ConferenceData.Sessions
+            .Where(s => s.StartsAt > time && s.StartsAt <= time.AddMinutes(40))
+            .Select(s => Summary.FromSession(s, ConferenceData))
+            .OrderBy(s => s.RoomSort);
+
+        CurrentSessions = ConferenceData.Sessions
+            .Where(s => s.StartsAt <= time && s.EndsAt > time)
+            .Select(s => Summary.FromSession(s, ConferenceData))
+            .OrderBy(s => s.RoomSort);
+    }
+}
