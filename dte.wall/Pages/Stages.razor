@@ -1,0 +1,74 @@
+﻿@page "/stages"
+@inject Edition2023Service Service
+@inject NavigationManager NavManager
+
+
+<PageTitle>dTE 2023 - Up next</PageTitle>
+
+<div class="row">
+    @foreach (var group in NextSessions)
+    {
+        <div class="col card-group">
+            <SessionCard Session="group.First()" Date="GetReferenceDateTime()"></SessionCard>
+        </div>
+    }
+</div>
+
+<div class="row pt-3">
+    @foreach (var group in NextSessions)
+    {
+        <div class="col card-group">
+            <SessionCard Session="group.ElementAtOrDefault(1)" Date="GetReferenceDateTime()"></SessionCard>
+        </div>
+    }
+</div>
+
+@code {
+    public ConferenceData? ConferenceData { get; set; }
+    public IEnumerable<IGrouping<int, Summary>> NextSessions { get; set; } = Enumerable.Empty<IGrouping<int, Summary>>();
+
+    private Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ConferenceData = await Service.GetConferenceDataAsync();
+
+        _timer = new System.Threading.Timer(async _ =>  // async void
+        {
+            DetermineSessions();
+            await InvokeAsync(StateHasChanged);
+        }, null, 0, 10000);
+    }
+
+    public DateTime GetReferenceDateTime()
+    {
+        var time = NavManager.QueryString("time");
+
+        if (time == null)
+        {
+            return DateTime.Now;
+        }
+
+        var eventDate = new DateTime(2023, 3, 23);
+        var timeOfDay = TimeSpan.Parse(time);
+
+        return eventDate.Add(timeOfDay);
+    }
+
+    public void DetermineSessions()
+    {
+        var time = GetReferenceDateTime();
+
+        if (ConferenceData == null)
+        {
+            return;
+        }
+
+        NextSessions = ConferenceData.Sessions
+            .Where(s => s.StartsAt <= time.AddMinutes(15) && s.EndsAt > time.AddMinutes(5))
+            .Select(s => Summary.FromSession(s, ConferenceData))
+            .OrderBy(s => s.RoomSort)
+            .ThenBy(s => s.Start)
+            .GroupBy(s => s.RoomSort);
+    }
+}

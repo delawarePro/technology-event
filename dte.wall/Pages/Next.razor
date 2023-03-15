@@ -64,12 +64,12 @@
         var time = GetReferenceDateTime();
 
         NextSessions = ConferenceData.Sessions
-            .Where(s => s.StartsAt > time && s.StartsAt <= time.AddMinutes(40))
+            .Where(s => s.StartsAt > time && s.StartsAt <= time.AddMinutes(30))
             .Select(s => Summary.FromSession(s, ConferenceData))
             .OrderBy(s => s.RoomSort);
 
         CurrentSessions = ConferenceData.Sessions
-            .Where(s => s.StartsAt <= time && s.EndsAt > time)
+            .Where(s => s.StartsAt <= time && s.EndsAt > time.AddMinutes(5)) // We exclude the last 5 minutes, focussing on the next
             .Select(s => Summary.FromSession(s, ConferenceData))
             .OrderBy(s => s.RoomSort);
 
