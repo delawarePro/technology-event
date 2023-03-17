@@ -1,31 +1,52 @@
 ﻿@page "/stages"
+@using DateTimeExtensions
 @inject Edition2023Service Service
 @inject NavigationManager NavManager
 
 
 <PageTitle>dTE 2023 - Up next</PageTitle>
 
-<div class="row">
-    @foreach (var group in NextSessions)
-    {
-        <div class="col card-group">
-            <SessionCard Session="group.First()" Date="GetReferenceDateTime()"></SessionCard>
-        </div>
-    }
-</div>
+@if (NextSessions.Any())
+{
+    <div class="row">
+        @foreach (var group in NextSessions)
+        {
+            <div class="col card-group">
+                <SessionCard Session="group.First()" Date="GetReferenceDateTime()"></SessionCard>
+            </div>
+        }
+    </div>
 
-<div class="row pt-3">
-    @foreach (var group in NextSessions)
-    {
-        <div class="col card-group">
-            <SessionCard Session="group.ElementAtOrDefault(1)" Date="GetReferenceDateTime()"></SessionCard>
+    <div class="row pt-3">
+        @foreach (var group in NextSessions)
+        {
+            <div class="col card-group">
+                <SessionCard Session="group.ElementAtOrDefault(1)" Date="GetReferenceDateTime()"></SessionCard>
+            </div>
+        }
+    </div>
+}
+else if (NextTime != null)
+{
+    <div class="row py-3">
+        <div class="col text-center">
+            <h2>On stage in @NextTime</h2>
         </div>
-    }
-</div>
+    </div>
+}
+else
+{
+    <div class="row py-3">
+        <div class="col text-center">
+            <h2>Thanks for joining, see you again next year</h2>
+        </div>
+    </div>
+}
 
 @code {
     public ConferenceData? ConferenceData { get; set; }
     public IEnumerable<IGrouping<int, Summary>> NextSessions { get; set; } = Enumerable.Empty<IGrouping<int, Summary>>();
+    public string? NextTime { get; set; }
 
     private Timer? _timer;
 
@@ -70,5 +91,15 @@
             .OrderBy(s => s.RoomSort)
             .ThenBy(s => s.Start)
             .GroupBy(s => s.RoomSort);
+
+        if (!NextSessions.Any())
+        {
+            var nextSession = ConferenceData.Sessions
+                .Where(s => s.StartsAt > time)
+                .MinBy(s => s.StartsAt);
+
+            NextTime = nextSession == null ? null : time.ToNaturalText(nextSession.StartsAt, true);
+           
+        }
     }
 }
