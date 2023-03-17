@@ -43,16 +43,27 @@ else
     </div>
 }
 
-@code {
+@code
+{
     public ConferenceData? ConferenceData { get; set; }
     public IEnumerable<IGrouping<int, Summary>> NextSessions { get; set; } = Enumerable.Empty<IGrouping<int, Summary>>();
     public string? NextTime { get; set; }
+    public int? RoomFilter { get; set; }
 
     private Timer? _timer;
 
     protected override async Task OnInitializedAsync()
     {
         ConferenceData = await Service.GetConferenceDataAsync();
+
+        var stageName = NavManager.QueryString("stage");
+
+        if(!string.IsNullOrEmpty(stageName))
+        {
+            RoomFilter = ConferenceData.Rooms
+                .Where(r => r.Name.Equals(stageName, StringComparison.InvariantCultureIgnoreCase))
+                .SingleOrDefault()?.Id;
+        }
 
         _timer = new System.Threading.Timer(async _ =>  // async void
         {
@@ -85,7 +96,14 @@ else
             return;
         }
 
-        NextSessions = ConferenceData.Sessions
+        var sessions = ConferenceData.Sessions.AsEnumerable();
+
+        if (RoomFilter.HasValue)
+        {
+            sessions = sessions.Where(s => s.RoomId == RoomFilter);
+        }
+
+        NextSessions = sessions
             .Where(s => s.StartsAt <= time.AddMinutes(15) && s.EndsAt > time.AddMinutes(5))
             .Select(s => Summary.FromSession(s, ConferenceData))
             .OrderBy(s => s.RoomSort)
@@ -94,12 +112,12 @@ else
 
         if (!NextSessions.Any())
         {
-            var nextSession = ConferenceData.Sessions
+            var nextSession = sessions
                 .Where(s => s.StartsAt > time)
                 .MinBy(s => s.StartsAt);
 
             NextTime = nextSession == null ? null : time.ToNaturalText(nextSession.StartsAt, true);
-           
+
         }
     }
 }
