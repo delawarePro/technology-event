@@ -6,24 +6,31 @@
 
 <PageTitle>dTE 2023 - Up next</PageTitle>
 
-@if (NextSessions.Any())
+@if (ConferenceData == null)
+{
+    <div class="d-flex align-items-center">
+        <strong>Loading...</strong>
+        <div class="spinner-border ml-auto text-light" role="status" aria-hidden="true"></div>
+    </div>
+}
+else if (NextSessions.Any())
 {
     <div class="row">
         @foreach (var group in NextSessions)
-            {
+        {
             <div class="col card-group">
                 <SessionCard Session="group.First()" Date="GetReferenceDateTime()"></SessionCard>
             </div>
-            }
+        }
     </div>
 
     <div class="row pt-3">
         @foreach (var group in NextSessions)
-            {
+        {
             <div class="col card-group">
                 <SessionCard Session="group.ElementAtOrDefault(1)" Date="GetReferenceDateTime()"></SessionCard>
             </div>
-            }
+        }
     </div>
 }
 else if (NextTime != null)
