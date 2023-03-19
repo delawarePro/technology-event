@@ -10,20 +10,20 @@
 {
     <div class="row">
         @foreach (var group in NextSessions)
-        {
+            {
             <div class="col card-group">
                 <SessionCard Session="group.First()" Date="GetReferenceDateTime()"></SessionCard>
             </div>
-        }
+            }
     </div>
 
     <div class="row pt-3">
         @foreach (var group in NextSessions)
-        {
+            {
             <div class="col card-group">
                 <SessionCard Session="group.ElementAtOrDefault(1)" Date="GetReferenceDateTime()"></SessionCard>
             </div>
-        }
+            }
     </div>
 }
 else if (NextTime != null)
@@ -31,6 +31,12 @@ else if (NextTime != null)
     <div class="row py-3">
         <div class="col text-center">
             <h2>On stage in @NextTime</h2>
+        </div>
+    </div>
+    <div class="row py-4">
+        <div class="col">
+            <h4>Check out at @HighlightSession.Start.ToShortTimeString()</h4>
+            <SessionCard Session="HighlightSession" Date="GetReferenceDateTime()"></SessionCard>
         </div>
     </div>
 }
@@ -47,10 +53,12 @@ else
 {
     public ConferenceData? ConferenceData { get; set; }
     public IEnumerable<IGrouping<int, Summary>> NextSessions { get; set; } = Enumerable.Empty<IGrouping<int, Summary>>();
+    public Summary? HighlightSession { get; set; }
     public string? NextTime { get; set; }
     public int? RoomFilter { get; set; }
 
     private Timer? _timer;
+    private Random _random = new Random();
 
     protected override async Task OnInitializedAsync()
     {
@@ -58,7 +66,7 @@ else
 
         var stageName = NavManager.QueryString("stage");
 
-        if(!string.IsNullOrEmpty(stageName))
+        if (!string.IsNullOrEmpty(stageName))
         {
             RoomFilter = ConferenceData.Rooms
                 .Where(r => r.Name.Equals(stageName, StringComparison.InvariantCultureIgnoreCase))
@@ -69,7 +77,7 @@ else
         {
             DetermineSessions();
             await InvokeAsync(StateHasChanged);
-        }, null, 0, 10000);
+        }, null, 0, 30000);
     }
 
     public DateTime GetReferenceDateTime()
@@ -110,14 +118,29 @@ else
             .ThenBy(s => s.Start)
             .GroupBy(s => s.RoomSort);
 
-        if (!NextSessions.Any())
+        if (NextSessions.Any())
+        {
+            NextTime = null;
+        }
+        else
         {
             var nextSession = sessions
                 .Where(s => s.StartsAt > time)
                 .MinBy(s => s.StartsAt);
 
             NextTime = nextSession == null ? null : time.ToNaturalText(nextSession.StartsAt, true);
+        }
 
+        if (NextTime == null)
+        {
+            HighlightSession = null;
+        }
+        else
+        {
+            var applicableSessions = sessions.Where(s => s.StartsAt > time);
+            var session = applicableSessions.ElementAt(_random.Next(0, applicableSessions.Count()));
+
+            HighlightSession = Summary.FromSession(session, ConferenceData);
         }
     }
 }
