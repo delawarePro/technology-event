@@ -9,18 +9,20 @@
             {
                 <h6 class="card-subtitle text-muted mb-3">
                     @foreach (var speaker in Session.Speakers)
-                        {
+                    {
                         @if (!string.IsNullOrEmpty(speaker.ProfilePicture))
-                            {
-                            <img src="@speaker.ProfilePicture" width="50px" class="rounded-circle" />
-                            <span class="px-3">@speaker.Name - @speaker.Title</span>
+                        {
+                            <div class="d-flex align-items-center pb-2">
+                                <img src="@speaker.ProfilePicture" width="50px" class="rounded-circle" />
+                                <span class="px-3">@speaker.Name - @speaker.Title</span>
+                            </div>
                             }
                             else
                             {
                             <span>@speaker.Name - @speaker.Title</span>
                             }
                         }
-                </h6>
+                        </h6>
                 }
 
             @if (TimeLeft(Session) > 5)

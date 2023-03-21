@@ -42,7 +42,7 @@ else if (NextTime != null)
     </div>
     <div class="row py-4">
         <div class="col">
-            <h4>Check out at @HighlightSession.Start.ToShortTimeString()</h4>
+            <h4>@HighlightSession.Start.ToShortTimeString()</h4>
             <SessionCard Session="HighlightSession" Date="GetReferenceDateTime()"></SessionCard>
         </div>
     </div>
@@ -119,34 +119,32 @@ else
         }
 
         NextSessions = sessions
-            .Where(s => s.StartsAt <= time.AddMinutes(15) && s.EndsAt > time.AddMinutes(5))
+            .Where(s => s.StartsAt <= time.AddMinutes(20) && s.EndsAt > time.AddMinutes(5))
             .Select(s => Summary.FromSession(s, ConferenceData))
             .OrderBy(s => s.RoomSort)
             .ThenBy(s => s.Start)
             .GroupBy(s => s.RoomSort);
 
+        var nextSession = sessions
+            .Where(s => s.StartsAt > time)
+            .MinBy(s => s.StartsAt);
+
         if (NextSessions.Any())
         {
             NextTime = null;
-        }
-        else
-        {
-            var nextSession = sessions
-                .Where(s => s.StartsAt > time)
-                .MinBy(s => s.StartsAt);
-
-            NextTime = nextSession == null ? null : time.ToNaturalText(nextSession.StartsAt, true);
-        }
-
-        if (NextTime == null)
-        {
             HighlightSession = null;
+        }
+        else if (RoomFilter.HasValue && nextSession != null)
+        {
+            NextTime = time.ToNaturalText(nextSession.StartsAt, true);
+            HighlightSession = Summary.FromSession(nextSession, ConferenceData);
         }
         else
         {
             var applicableSessions = sessions.Where(s => s.StartsAt > time);
             var session = applicableSessions.ElementAt(_random.Next(0, applicableSessions.Count()));
 
+            NextTime = nextSession == null ? null : time.ToNaturalText(nextSession.StartsAt, true);
             HighlightSession = Summary.FromSession(session, ConferenceData);
         }
     }
