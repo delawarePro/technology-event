@@ -1,11 +1,11 @@
 ﻿@if (Session != null)
 {
     <div class="card bg-white text-dark p-2">
-        <div class="card-body">
-            <div class="badge bg-secondary text-white">@Session.Room</div>
-            <h3 class="card-title my-3">@Session.Title</h3>
+    <div class="card-body">
+        <div class="badge bg-secondary text-white">@Session.Room</div>
+        <h3 class="card-title my-3">@Session.Title</h3>
 
-            @if (Session.Speakers.Any())
+        @if (Session.Speakers.Any())
             {
                 <h6 class="card-subtitle text-muted mb-3">
                     @foreach (var speaker in Session.Speakers)
@@ -16,34 +16,35 @@
                                 <img src="@speaker.ProfilePicture" width="50px" class="rounded-circle" />
                                 <span class="px-3">@speaker.Name - @speaker.Title</span>
                             </div>
-                            }
-                            else
-                            {
-                            <span>@speaker.Name - @speaker.Title</span>
-                            }
                         }
-                        </h6>
-                }
+                        else
+                        {
+                            <span>@speaker.Name - @speaker.Title</span>
+                        }
+                    }
+                </h6>
+            }
 
             @if (TimeLeft(Session) > 5)
             {
                 <p class="card-text">@Session.Description</p>
-                }
+            }
             <p class="card-text">
                 @foreach (var tag in Session.Tags)
-                    {
+                {
                     <span class="badge bg-danger rounded-pill me-2">@tag</span>
-                    }
+                }
             </p>
 
-            @if (Session.Start > GetReferenceDateTime())
+            @if (Session.GetStartOffset() > GetReferenceDateTime())
             {
-                <p class="card-text"><small class="text-muted">Start <strong>@Session.Start.ToShortTimeString()</strong></small></p>
-                }
-                else
-                {
+                <p class="card-text"><small class="text-muted">Start <strong>@Session.Start.ToShortTimeString() CET</strong> -
+                        @Session.Start.ToUniversalTime().ToShortTimeString() UTC</small></p>
+            }
+            else
+            {
                 <p class="card-text"><small class="text-muted">Ends in @TimeLeft(Session) minutes.</small></p>
-                }
+            }
 
         </div>
     </div>
@@ -54,15 +55,15 @@
     public Summary Session { get; set; }
 
     [Parameter]
-    public DateTime? Date { get; set; }
+    public DateTimeOffset? Date { get; set; }
 
     public double TimeLeft(Summary summary)
     {
-        return Math.Floor(summary.End.Subtract(GetReferenceDateTime()).TotalMinutes);
+        return Math.Floor(summary.GetEndOffset().Subtract(GetReferenceDateTime()).TotalMinutes);
     }
 
-    public DateTime GetReferenceDateTime()
+    public DateTimeOffset GetReferenceDateTime()
     {
-        return Date ?? DateTime.Now;
+        return Date ?? DateTimeOffset.Now;
     }
 }

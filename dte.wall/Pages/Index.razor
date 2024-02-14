@@ -1,8 +1,16 @@
 ﻿@page "/"
 
-<PageTitle>dTE 2023 - Wall</PageTitle>
+<PageTitle>dTE 2024 - Wall</PageTitle>
 
 <ul>
     <li><a href="/next">Up next</a></li>
     <li><a href="/stages">Stages view</a></li>
+    <li><a href="/stages?stage=stage%201">Stage 1</a></li>
+    <li><a href="/stages?stage=stage%202">Stage 2</a></li>
+</ul>
+
+<h4>Debug</h4>
+<ul>
+    <li><strong>Current date/time:</strong> @DateTime.Now.ToString("R")</li>
+    <li><strong>UTC date/time:</strong> @DateTime.UtcNow.ToString("R")</li>
 </ul>

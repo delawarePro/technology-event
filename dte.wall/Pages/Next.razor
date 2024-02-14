@@ -2,8 +2,7 @@
 @inject Edition2023Service Service
 @inject NavigationManager NavManager
 
-
-<PageTitle>dTE 2023 - Up next</PageTitle>
+<PageTitle>dTE - Up next</PageTitle>
 
 @if (CurrentSessions.Any())
 {
@@ -27,11 +26,11 @@
 }
 
 @code {
-    public ConferenceData ConferenceData { get; set; }
+    public ConferenceData? ConferenceData { get; set; }
     public IEnumerable<Summary> NextSessions { get; set; } = Enumerable.Empty<Summary>();
     public IEnumerable<Summary> CurrentSessions { get; set; } = Enumerable.Empty<Summary>();
 
-    private Timer _timer;
+    private Timer? _timer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -44,32 +43,28 @@
         }, null, 0, 10000);
     }
 
-    public DateTime GetReferenceDateTime()
+    public DateTimeOffset GetReferenceDateTime()
     {
         var time = NavManager.QueryString("time");
-
-        if (time == null)
-        {
-            return DateTime.Now;
-        }
-
-        var eventDate = new DateTime(2023, 3, 23);
-        var timeOfDay = TimeSpan.Parse(time);
-
-        return eventDate.Add(timeOfDay);
+        return TimeHelpers.GetOffsetByTime(time);
     }
 
     public void DetermineSessions()
     {
-        var time = GetReferenceDateTime();
+        if (ConferenceData == null)
+        {
+            return;
+        }
+
+        var time = GetReferenceDateTime().ToUniversalTime();
 
         NextSessions = ConferenceData.Sessions
-            .Where(s => s.StartsAt > time && s.StartsAt <= time.AddMinutes(30))
+            .Where(s => s.GetStartOffset() > time && s.GetStartOffset() <= time.AddMinutes(30))
             .Select(s => Summary.FromSession(s, ConferenceData))
             .OrderBy(s => s.RoomSort);
 
         CurrentSessions = ConferenceData.Sessions
-            .Where(s => s.StartsAt <= time && s.EndsAt > time.AddMinutes(5)) // We exclude the last 5 minutes, focussing on the next
+            .Where(s => s.GetStartOffset() <= time && s.GetStartOffset() > time.AddMinutes(5)) // We exclude the last 5 minutes, focussing on the next
             .Select(s => Summary.FromSession(s, ConferenceData))
             .OrderBy(s => s.RoomSort);
 

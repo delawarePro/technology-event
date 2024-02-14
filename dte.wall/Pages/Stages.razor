@@ -1,10 +1,9 @@
 ﻿@page "/stages"
-@using DateTimeExtensions
 @inject Edition2023Service Service
 @inject NavigationManager NavManager
 
 
-<PageTitle>dTE 2023 - Up next</PageTitle>
+<PageTitle>dTE - Stages</PageTitle>
 
 @if (ConferenceData == null)
 {
@@ -33,11 +32,11 @@ else if (NextSessions.Any())
         }
     </div>
 }
-else if (NextTime != null)
+else if (NextTime != null && HighlightSession != null)
 {
     <div class="row py-3">
         <div class="col text-center">
-            <h2>On stage in @NextTime</h2>
+            <h2 style="display-2">@NextTime</h2>
         </div>
     </div>
     <div class="row py-4">
@@ -51,7 +50,7 @@ else
 {
     <div class="row py-3">
         <div class="col text-center">
-            <h2>Thanks for joining, see you again next year</h2>
+            <h2 class="display-1">Thanks for joining,<br />hope to see you again next year</h2>
         </div>
     </div>
 }
@@ -87,19 +86,10 @@ else
         }, null, 0, 30000);
     }
 
-    public DateTime GetReferenceDateTime()
+    public DateTimeOffset GetReferenceDateTime()
     {
         var time = NavManager.QueryString("time");
-
-        if (time == null)
-        {
-            return DateTime.Now;
-        }
-
-        var eventDate = new DateTime(2023, 3, 23);
-        var timeOfDay = TimeSpan.Parse(time);
-
-        return eventDate.Add(timeOfDay);
+        return TimeHelpers.GetOffsetByTime(time);
     }
 
     public void DetermineSessions()
@@ -119,14 +109,14 @@ else
         }
 
         NextSessions = sessions
-            .Where(s => s.StartsAt <= time.AddMinutes(20) && s.EndsAt > time.AddMinutes(5))
+            .Where(s => s.GetStartOffset() <= time.AddMinutes(20) && s.GetEndOffset() > time.AddMinutes(5))
             .Select(s => Summary.FromSession(s, ConferenceData))
             .OrderBy(s => s.RoomSort)
             .ThenBy(s => s.Start)
             .GroupBy(s => s.RoomSort);
 
         var nextSession = sessions
-            .Where(s => s.StartsAt > time)
+            .Where(s => s.GetStartOffset() > time)
             .MinBy(s => s.StartsAt);
 
         if (NextSessions.Any())
@@ -134,17 +124,27 @@ else
             NextTime = null;
             HighlightSession = null;
         }
-        else if (RoomFilter.HasValue && nextSession != null)
+
+        if (nextSession != null)
         {
-            NextTime = time.ToNaturalText(nextSession.StartsAt, true);
+            NextTime = nextSession.AsDifferenceText(time);
+        }
+
+        if (RoomFilter.HasValue)
+        {
             HighlightSession = Summary.FromSession(nextSession, ConferenceData);
         }
         else
         {
-            var applicableSessions = sessions.Where(s => s.StartsAt > time);
-            var session = applicableSessions.ElementAt(_random.Next(0, applicableSessions.Count()));
+            var applicableSessions = sessions.Where(s => s.GetStartOffset() > time);
 
-            NextTime = nextSession == null ? null : time.ToNaturalText(nextSession.StartsAt, true);
+            if (!applicableSessions.Any())
+            {
+                HighlightSession = null;
+                return;
+            }
+
+            var session = applicableSessions.ElementAt(_random.Next(0, applicableSessions.Count()));
             HighlightSession = Summary.FromSession(session, ConferenceData);
         }
     }

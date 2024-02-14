@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using dte.wall.Data;
+﻿using dte.wall.Data;
 
 namespace dte.wall;
 
@@ -11,12 +9,12 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
+        builder.Services.AddLocalization();
         builder.Services.AddRazorPages();
         builder.Services.AddServerSideBlazor();
-        builder.Services.AddHttpClient("2023", c => c.BaseAddress = new Uri("https://sessionize.com/api/v2/qqwyyssz/"));
+        builder.Services.AddHttpClient("2023", c => c.BaseAddress = new Uri("https://sessionize.com/api/v2/73truylu/"));
         builder.Services.AddSingleton<Edition2023Service>();
-        builder.Services.Configure<ConferenceOptions>(builder.Configuration.GetSection("conference"));
-
+        
         var app = builder.Build();
 
         // Configure the HTTP request pipeline.
@@ -31,6 +29,7 @@ public class Program
 
         app.UseStaticFiles();
 
+        app.UseRequestLocalization();
         app.UseRouting();
 
         app.MapBlazorHub();
