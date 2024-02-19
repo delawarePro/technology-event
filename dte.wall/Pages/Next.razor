@@ -7,7 +7,7 @@
 @if (CurrentSessions.Any())
 {
     <div class="row py-3">
-        <div class="col text-bg-light">
+        <div class="col">
             <h2>Now</h2>
         </div>
     </div>
@@ -56,7 +56,7 @@
             return;
         }
 
-        var time = GetReferenceDateTime().ToUniversalTime();
+        var time = GetReferenceDateTime();
 
         NextSessions = ConferenceData.Sessions
             .Where(s => s.GetStartOffset() > time && s.GetStartOffset() <= time.AddMinutes(30))
@@ -64,7 +64,7 @@
             .OrderBy(s => s.RoomSort);
 
         CurrentSessions = ConferenceData.Sessions
-            .Where(s => s.GetStartOffset() <= time && s.GetStartOffset() > time.AddMinutes(5)) // We exclude the last 5 minutes, focussing on the next
+            .Where(s => s.GetStartOffset() <= time && s.GetEndOffset() > time.AddMinutes(5)) // We exclude the last 5 minutes, focussing on the next
             .Select(s => Summary.FromSession(s, ConferenceData))
             .OrderBy(s => s.RoomSort);
 
