@@ -1,0 +1,158 @@
+@page "/carousel"
+@inject Edition2023Service Service
+@inject NavigationManager NavManager
+
+<PageTitle>dTE - Carousel</PageTitle>
+
+<div id="carousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000">
+    <div class="carousel-inner">
+        <div class="carousel-item active">
+            <div class="row py-3">
+                <div class="col text-center">
+                    <h2 class="display-1">@NavManager.QueryString("stage")</h2>
+                </div>
+            </div>
+        </div>
+
+        @if(NextSession != null)
+        {
+            <div class="carousel-item">
+                <div class="row py-3">
+                    <div class="col">
+                        <h2>@NavManager.QueryString("stage")<br/><small class="text-body-secondary">@NextTime</small></h2>
+                    </div>
+                </div>
+                <div class="row py-4">
+                    <div class="col">
+                        <h4>@NextSession.Start.ToShortTimeString()</h4>
+                        <SessionCard Session="NextSession" Date="GetReferenceDateTime()"></SessionCard>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if(OtherSessions != null && OtherSessions.Any())
+        {
+            <div class="carousel-item">
+                <div class="row py-5">
+                    <div class="coll">
+                        <h2>Other stages</h2>
+                    </div>
+                </div>
+
+                <Sessions Collection="OtherSessions" Date="GetReferenceDateTime()"></Sessions>
+            </div>
+        }
+
+        @if(LaterSessions != null && LaterSessions.Any())
+        {
+            <div class="carousel-item">
+                <div class="row py-5">
+                    <div class="coll">
+                        <h2>Later today</h2>
+                    </div>
+                </div>
+
+                <Sessions Collection="LaterSessions" Date="GetReferenceDateTime()"></Sessions>
+            </div>
+        }
+    
+        @if(NextSession != null)
+        {
+            <div class="carousel-item">
+                <div class="col text-center py-3">
+                    <h2 class="display-1">We will be back at @NextSession.Start.ToShortTimeString() CET</h2>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+<button class="carousel-control-prev" type="button" data-bs-target="#carousel" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Previous</span>
+</button>
+<button class="carousel-control-next" type="button" data-bs-target="#carousel" data-bs-slide="next">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Next</span>
+</button>
+
+@code {
+    public ConferenceData? ConferenceData { get; set; }
+    public Summary? NextSession { get; set; }
+    public string? NextTime { get; set; }
+    public int? RoomFilter { get; set; }
+    public IEnumerable<Summary> OtherSessions { get; set; } = Enumerable.Empty<Summary>();
+    public IEnumerable<Summary> LaterSessions { get; set; } = Enumerable.Empty<Summary>();
+
+    private Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ConferenceData = await Service.GetConferenceDataAsync();
+
+        _timer = new System.Threading.Timer(async _ =>  // async void
+        {
+            DetermineSessions();
+            await InvokeAsync(StateHasChanged);
+        }, null, 0, 10000);
+    }
+
+    public DateTimeOffset GetReferenceDateTime()
+    {
+        var time = NavManager.QueryString("time");
+        return TimeHelpers.GetOffsetByTime(time);
+    }
+
+    public void DetermineSessions()
+    {
+        var time = GetReferenceDateTime();
+        var stageName = NavManager.QueryString("stage");
+
+        if (ConferenceData == null || string.IsNullOrEmpty(stageName))
+        {
+            return;
+        }
+
+        RoomFilter = ConferenceData.Rooms
+                .Where(r => r.Name.Equals(stageName, StringComparison.InvariantCultureIgnoreCase))
+                .SingleOrDefault()?.Id;
+
+        var sessions = ConferenceData.Sessions
+            .AsEnumerable()
+            .Where(s => s.RoomId == RoomFilter);
+
+        if (!sessions.Any())
+        {
+            return;
+        }
+
+        var nextSession = sessions
+            .Where(s => s.GetStartOffset() > time)
+            .MinBy(s => s.StartsAt);
+
+        var nextTime = nextSession?.StartsAt ?? time;
+        NextTime = nextSession.AsDifferenceText(time);
+        NextSession = Summary.FromSession(nextSession, ConferenceData);
+
+        OtherSessions = ConferenceData.Sessions
+            .Where(s => s.RoomId != RoomFilter && s.GetStartOffset() >= nextTime && s.GetStartOffset() <= nextTime.AddMinutes(30))
+            .Select(s => Summary.FromSession(s, ConferenceData))
+            .OrderBy(s => s.RoomSort);
+
+        if(NextSession == null)
+        {
+            LaterSessions = null;
+        }
+        else
+        {
+            var fromTime = NextSession.GetEndOffset();
+            LaterSessions = ConferenceData.Sessions
+                .Where(s => s.GetStartOffset() >= fromTime)
+                .Select(s => Summary.FromSession(s, ConferenceData))
+                .OrderBy(s => s.RoomSort)
+                .ThenBy(s => s.Start);
+        }
+
+        
+    }
+}
