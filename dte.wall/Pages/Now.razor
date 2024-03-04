@@ -1,0 +1,76 @@
+﻿@page "/now"
+@inject Edition2023Service Service
+@inject NavigationManager NavManager
+
+<PageTitle>dTE - Now</PageTitle>
+
+@if (CurrentSessions.Any())
+{
+    <div class="row py-3">
+        <div class="col">
+            <h2>Now</h2>
+        </div>
+    </div>
+    <Sessions Collection="CurrentSessions" Date="GetReferenceDateTime()"></Sessions>
+}
+
+@code {
+    public ConferenceData? ConferenceData { get; set; }
+    public IEnumerable<Summary> CurrentSessions { get; set; } = Enumerable.Empty<Summary>();
+    public int? RoomFilter { get; set; }
+
+    private Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ConferenceData = await Service.GetConferenceDataAsync();
+
+        _timer = new System.Threading.Timer(async _ =>  // async void
+        {
+            DetermineSessions();
+            await InvokeAsync(StateHasChanged);
+        }, null, 0, 10000);
+    }
+
+    public DateTimeOffset GetReferenceDateTime()
+    {
+        var time = NavManager.QueryString("time");
+        return TimeHelpers.GetOffsetByTime(time);
+    }
+
+    public void DetermineSessions()
+    {
+        if (ConferenceData == null)
+        {
+            return;
+        }
+
+        var time = GetReferenceDateTime();
+        var sessions = ConferenceData.Sessions.AsEnumerable();
+        var stageName = NavManager.QueryString("stage");
+
+        if (!string.IsNullOrEmpty(stageName))
+        {
+            RoomFilter = ConferenceData.Rooms
+                .Where(r => r.Name.Equals(stageName, StringComparison.InvariantCultureIgnoreCase))
+                .SingleOrDefault()?.Id;
+        }
+
+        if (RoomFilter.HasValue)
+        {
+            sessions = sessions.Where(s => s.RoomId == RoomFilter);
+        }
+
+        CurrentSessions = sessions
+            .Where(s => s.GetStartOffset() <= time && s.GetEndOffset() > time.AddMinutes(5)) // We exclude the last 5 minutes, focussing on the next
+            .Select(s => Summary.FromSession(s, ConferenceData))
+            .OrderBy(s => s.RoomSort);
+
+        if (!CurrentSessions.Any())
+        {
+            CurrentSessions = new[] { Summary.FromSession(
+                sessions.OrderBy(s => s.StartsAt).First(),
+                ConferenceData)};
+        }
+    }
+}
