@@ -38,8 +38,7 @@
 
             @if (Session.GetStartOffset() > GetReferenceDateTime())
             {
-                <p class="card-text"><small class="text-muted">Start <strong>@Session.Start.ToShortTimeString() CET</strong> -
-                        @Session.Start.ToUniversalTime().ToShortTimeString() UTC</small></p>
+                <p class="card-text"><small class="text-muted">Start <WorldTime TimeCET="Session.Start"></WorldTime></small></p>
             }
             else
             {

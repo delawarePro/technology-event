@@ -69,9 +69,9 @@ namespace dte.wall.Helpers
 
             var diff = session.GetStartOffset().Subtract(referenceTime);
 
-            if (diff.TotalMinutes < 0)
+            if (diff.TotalMinutes < 1)
             {
-                return "Hope to see you again next year";
+                return "We will start shortly";
             }
 
             if (diff.Days > 0 || diff.TotalHours > 12)

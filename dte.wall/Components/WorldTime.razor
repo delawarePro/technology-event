@@ -1,0 +1,25 @@
+@if (TimeCET.HasValue)
+{
+    <strong>@TimeCET.Value.ToString("HH:mm") CET</strong>
+
+    @foreach(var kvp in Timezones)
+    {
+        <span>&nbsp;-
+        @TimeZoneInfo.ConvertTimeFromUtc(@TimeCET.Value.ToUniversalTime(), kvp.Value).ToString("HH:mm")
+        @kvp.Key
+        </span>
+    }
+}
+
+@code {
+    [Parameter]
+    public DateTime? TimeCET { get; set; }
+
+    public Dictionary<string, TimeZoneInfo> Timezones { get; } = new Dictionary<string, TimeZoneInfo>{
+        ["CT"] = TimeZoneInfo.FindSystemTimeZoneById("Central America Standard Time"),
+        ["GMT"] = TimeZoneInfo.FindSystemTimeZoneById("GMT Standard Time"),
+        ["IST"] = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"),
+        ["SGT"] = TimeZoneInfo.FindSystemTimeZoneById("Singapore Standard Time"),
+    };
+}   
+
