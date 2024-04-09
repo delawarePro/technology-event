@@ -12,7 +12,7 @@ public class Program
         builder.Services.AddLocalization();
         builder.Services.AddRazorPages();
         builder.Services.AddServerSideBlazor();
-        builder.Services.AddHttpClient("2023", c => c.BaseAddress = new Uri("https://sessionize.com/api/v2/73truylu/"));
+        builder.Services.AddHttpClient("2023", c => c.BaseAddress = new Uri("https://sessionize.com/api/v2/8bqyazk4/"));
         builder.Services.AddSingleton<Edition2023Service>();
         
         var app = builder.Build();
